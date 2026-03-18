@@ -153,10 +153,15 @@ export default function POSPage() {
                   </span>
                 </div>
 
-                {/* เช็คสิทธิ์: ถ้า Role เป็น admin (แปลงตัวเล็กใหญ่ให้ตรงกัน) ถึงจะเห็นปุ่มนี้ */}
-                {(session.user as any)?.role?.toLowerCase() === "admin" && (
+                {/* เช็คสิทธิ์: ให้เห็นได้ทั้ง admin และ superadmin */}
+                {["admin", "superadmin"].includes(
+                  (session.user as any)?.role?.toLowerCase(),
+                ) && (
                   <Link href="/admin">
-                    <Button variant="outline" className="border-zinc-300">
+                    <Button
+                      variant="outline"
+                      className="border-zinc-300 cursor-pointer"
+                    >
                       ⚙️ จัดการร้าน (Admin)
                     </Button>
                   </Link>

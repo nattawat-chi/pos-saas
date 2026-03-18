@@ -9,7 +9,10 @@ export default withAuth(
     const role = (req.nextauth.token?.role as string)?.toLowerCase();
 
     // 2. ถ้าพยายามเข้าหน้า /admin แต่ Role ไม่ใช่ admin ให้เตะกลับไปหน้าร้าน (/)
-    if (req.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
+    if (
+      req.nextUrl.pathname.startsWith("/admin") &&
+      !["admin", "superadmin"].includes(role)
+    ) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   },
