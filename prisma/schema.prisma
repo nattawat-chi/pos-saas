@@ -1,0 +1,142 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// 1. ระบบ SaaS (ร้านค้าหลัก)
+// ==========================================
+model Shop {
+  id          String          @id @default(cuid())
+  name        String          @unique // ชื่อร้าน (เช่น Area25 Cafe)
+  users       User[]
+  categories  Category[]
+  products    Product[]
+  inventories InventoryItem[]
+  orders      Order[]
+  createdAt   DateTime        @default(now())
+}
+
+// ==========================================
+// 2. ระบบผู้ใช้งานและสิทธิ์ (เพิ่มสังกัดร้าน)
+// ==========================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String   @default("")
+  role      Role     @default(STAFF)
+  
+  shopId    String   // ระบุว่าพนักงานคนนี้อยู่ร้านไหน
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  SUPERADMIN // เจ้าของระบบ SaaS (ตัวคุณเอง เอาไว้ดูภาพรวมทุกร้าน)
+  ADMIN      // เจ้าของร้าน (เพื่อนคุณ)
+  STAFF      // พนักงานชงกาแฟร้านเพื่อน
+}
+
+// ==========================================
+// 3. หมวดหมู่และสินค้า (แยกร้านใครร้านมัน)
+// ==========================================
+model Category {
+  id       String    @id @default(cuid())
+  name     String    
+  shopId   String
+  shop     Shop      @relation(fields: [shopId], references: [id])
+  products Product[]
+}
+
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  price       Float
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
+  
+  shopId      String
+  shop        Shop         @relation(fields: [shopId], references: [id])
+  
+  orderItems  OrderItem[]
+  recipeItems RecipeItem[] 
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+}
+
+// ==========================================
+// 4. ระบบจัดการสต็อก (แยกร้านใครร้านมัน)
+// ==========================================
+model InventoryItem {
+  id          String       @id @default(cuid())
+  name        String       
+  unit        String       
+  quantity    Float        @default(0) 
+  
+  shopId      String
+  shop        Shop         @relation(fields: [shopId], references: [id])
+
+  recipeItems RecipeItem[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+}
+
+// ==========================================
+// 5. สูตรการทำเครื่องดื่ม
+// ==========================================
+model RecipeItem {
+  id              String        @id @default(cuid())
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  amountRequired  Float         
+}
+
+// ==========================================
+// 6. ออเดอร์และการจัดการคิว (แยกร้านใครร้านมัน)
+// ==========================================
+model Order {
+  id          String      @id @default(cuid())
+  userId      String      
+  user        User        @relation(fields: [userId], references: [id])
+  
+  shopId      String
+  shop        Shop        @relation(fields: [shopId], references: [id])
+
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+}
+
+enum OrderStatus {
+  PENDING     
+  IN_PROGRESS 
+  COMPLETED   
+  CANCELLED   
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  quantity    Int
+
+  brewMethod  String? 
+  grindSize   Int?    
+  temperature Float?  
+  sweetness   Int?    
+  note        String? 
+}
