@@ -123,7 +123,17 @@ export default function POSPage() {
         >
           <CardContent className="p-4 flex flex-col h-full justify-between items-center text-center">
             <div className="h-24 w-24 bg-zinc-200 rounded-md mb-4 flex items-center justify-center text-3xl">
-              {product.category.name === "Bakery" ? "🥐" : "☕"}
+              {product.category.name === "Bakery" ? (
+                "🥐"
+              ) : product.category.name === "น้ำแพ็ค" ? (
+                <img
+                  src="/water-bottle.png"
+                  alt="Water Bottle"
+                  className="w-16 h-16 object-contain"
+                />
+              ) : (
+                "☕"
+              )}
             </div>
             <h3 className="font-medium text-sm text-zinc-700">
               {product.name}

@@ -13,7 +13,7 @@ export default function AdminLayout({
         <h2 className="text-2xl font-bold mb-8">POS Admin</h2>
         <nav className="flex flex-col gap-4">
           <Link href="/admin" className="hover:text-zinc-300 transition-colors">
-            📊 Dashboard
+            📊 สรุปยอดขาย (Dashboard)
           </Link>
           <Link
             href="/admin/products"

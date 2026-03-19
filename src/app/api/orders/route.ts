@@ -54,3 +54,46 @@ export async function PATCH(req: Request) {
     );
   }
 }
+
+// 🛑 ลบออเดอร์ (Void Bill)
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.shopId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const shopId = (session.user as any).shopId;
+
+    const url = new URL(req.url);
+    const orderId = url.searchParams.get("id");
+
+    if (!orderId)
+      return NextResponse.json(
+        { error: "Order ID is required" },
+        { status: 400 },
+      );
+
+    // เช็คความปลอดภัย: ต้องเป็นออเดอร์ของร้านตัวเองเท่านั้น
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order || order.shopId !== shopId) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // ใช้ Transaction: ลบรายการสินค้าข้างในบิลทิ้งก่อน แล้วค่อยลบตัวบิลหลัก (ไม่งั้น Database จะ Error)
+    await prisma.$transaction([
+      prisma.orderItem.deleteMany({ where: { orderId: orderId } }),
+      prisma.order.delete({ where: { id: orderId } }),
+    ]);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to delete order" },
+      { status: 500 },
+    );
+  }
+}

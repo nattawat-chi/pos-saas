@@ -22,7 +22,23 @@ export default function OrdersHistoryPage() {
     };
     fetchOrders();
   }, []);
+  const handleDelete = async (orderId: string) => {
+    if (
+      !confirm(
+        `⚠️ คุณแน่ใจหรือไม่ที่จะยกเลิกบิล "${orderId}" ?\n*ยอดขายของบิลนี้จะถูกหักออกจาก Dashboard ทันที`,
+      )
+    )
+      return;
 
+    const res = await fetch(`/api/orders?id=${orderId}`, { method: "DELETE" });
+    if (res.ok) {
+      alert("ยกเลิกบิลสำเร็จ!");
+      // เรียกฟังก์ชันดึงข้อมูลออเดอร์ของคุณใหม่ตรงนี้ เช่น fetchOrders()
+      window.location.reload(); // หรือใช้วิธีรีเฟรชหน้าเว็บง่ายๆ แบบนี้ก็ได้ครับ
+    } else {
+      alert("เกิดข้อผิดพลาดในการลบออเดอร์");
+    }
+  };
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("th-TH", {
       day: "2-digit",
@@ -95,7 +111,7 @@ export default function OrdersHistoryPage() {
                   ฿{order.totalAmount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-6 py-4 text-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -105,6 +121,14 @@ export default function OrdersHistoryPage() {
                     }}
                   >
                     🔍 ดูบิล
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300 text-red-600 hover:bg-red-50 cursor-pointer"
+                    onClick={() => handleDelete(order.id)}
+                  >
+                    🗑️ ยกเลิกบิล
                   </Button>
                 </td>
               </tr>
