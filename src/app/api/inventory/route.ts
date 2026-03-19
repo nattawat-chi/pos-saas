@@ -93,3 +93,38 @@ export async function PUT(req: Request) {
     );
   }
 }
+// 🛑 4. ลบวัตถุดิบ
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.shopId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const shopId = (session.user as any).shopId;
+
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    if (!id)
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+
+    // ป้องกันการลบวัตถุดิบของร้านอื่น
+    await prisma.inventoryItem.deleteMany({
+      where: {
+        id: id,
+        shopId: shopId,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    // ดักจับ Error เผื่อว่าวัตถุดิบนี้ถูกผูกไว้ในหน้า "สูตรชง" แล้ว
+    return NextResponse.json(
+      {
+        error:
+          'ไม่สามารถลบได้ กรุณาตรวจสอบว่าวัตถุดิบนี้ถูกตั้งเป็น "สูตรชง" ในเมนูไหนหรือไม่ (ต้องปลดสูตรออกก่อนลบ)',
+      },
+      { status: 500 },
+    );
+  }
+}

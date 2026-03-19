@@ -1,3 +1,4 @@
+// src/app/admin/inventory/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,13 +15,12 @@ export default function InventoryPage() {
   const [items, setItems] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isRefillOpen, setIsRefillOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false); // State ใหม่สำหรับเปิด/ปิด Popup แก้ไข
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const [newItem, setNewItem] = useState({ name: "", quantity: "", unit: "" });
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [refillAmount, setRefillAmount] = useState("");
 
-  // State ใหม่สำหรับเก็บข้อมูลฟอร์มแก้ไข
   const [editForm, setEditForm] = useState({
     id: "",
     name: "",
@@ -65,7 +65,6 @@ export default function InventoryPage() {
     fetchInventory();
   };
 
-  // ฟังก์ชันใหม่: กดเซฟการแก้ไขข้อมูล
   const handleEditSave = async () => {
     if (!editForm.name || !editForm.unit) return alert("กรุณากรอกข้อมูลให้ครบ");
     await fetch("/api/inventory", {
@@ -75,11 +74,29 @@ export default function InventoryPage() {
         id: editForm.id,
         name: editForm.name,
         unit: editForm.unit,
-        exactQuantity: editForm.quantity, // ส่งเลขใหม่ไปเขียนทับ
+        exactQuantity: editForm.quantity,
       }),
     });
     setIsEditOpen(false);
     fetchInventory();
+  };
+
+  // 🛑 ฟังก์ชันใหม่: ลบวัตถุดิบ
+  const handleDelete = async (id: string, name: string) => {
+    if (
+      !confirm(
+        `⚠️ คุณแน่ใจหรือไม่ที่จะลบวัตถุดิบ "${name}" ?\n*หากวัตถุดิบนี้ถูกผูกไว้ในสูตรเครื่องดื่ม จะไม่สามารถลบได้`,
+      )
+    )
+      return;
+
+    const res = await fetch(`/api/inventory?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      fetchInventory();
+    } else {
+      const data = await res.json();
+      alert(`ลบไม่สำเร็จ: ${data.error}`);
+    }
   };
 
   return (
@@ -90,7 +107,7 @@ export default function InventoryPage() {
         </h1>
         <Button
           onClick={() => setIsAddOpen(true)}
-          className="bg-zinc-900 text-white"
+          className="bg-zinc-900 text-white hover:bg-zinc-800"
         >
           + เพิ่มวัตถุดิบใหม่
         </Button>
@@ -126,9 +143,8 @@ export default function InventoryPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                    className="border-blue-300 text-blue-600 hover:bg-blue-50 cursor-pointer"
                     onClick={() => {
-                      // ดึงข้อมูลเดิมมาใส่ฟอร์มรอไว้เลย
                       setEditForm({
                         id: item.id,
                         name: item.name,
@@ -141,11 +157,11 @@ export default function InventoryPage() {
                     ✏️ แก้ไข
                   </Button>
 
-                  {/* ปุ่มเติมสต็อก (ของเดิม) */}
+                  {/* ปุ่มเติมสต็อก */}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 cursor-pointer"
                     onClick={() => {
                       setSelectedItem(item);
                       setIsRefillOpen(true);
@@ -153,9 +169,26 @@ export default function InventoryPage() {
                   >
                     + เติมสต็อก
                   </Button>
+
+                  {/* 🛑 ปุ่มลบ */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300 text-red-600 hover:bg-red-50 cursor-pointer"
+                    onClick={() => handleDelete(item.id, item.name)}
+                  >
+                    🗑️ ลบ
+                  </Button>
                 </td>
               </tr>
             ))}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={4} className="text-center py-10 text-zinc-400">
+                  ยังไม่มีข้อมูลวัตถุดิบ
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -190,7 +223,7 @@ export default function InventoryPage() {
               />
             </div>
             <Button
-              className="w-full bg-zinc-900 text-white"
+              className="w-full bg-zinc-900 text-white hover:bg-zinc-800"
               onClick={handleCreate}
             >
               บันทึก
