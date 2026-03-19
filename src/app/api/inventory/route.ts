@@ -1,8 +1,10 @@
+// src/app/api/inventory/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
+// 1. ดึงข้อมูลคลังวัตถุดิบ
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -24,6 +26,7 @@ export async function GET() {
   }
 }
 
+// 2. สร้างวัตถุดิบใหม่
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,13 +41,54 @@ export async function POST(req: Request) {
         name: data.name,
         unit: data.unit,
         quantity: Number(data.quantity) || 0,
-        shopId: shopId, // แปะป้ายร้านค้า
+        shopId: shopId,
       },
     });
     return NextResponse.json(newItem);
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to create inventory item" },
+      { status: 500 },
+    );
+  }
+}
+
+// 🛑 3. แก้ไขและเติมสต็อกวัตถุดิบ (เพิ่มใหม่)
+export async function PUT(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.shopId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const shopId = (session.user as any).shopId;
+    const data = await req.json();
+
+    // จัดเตรียมข้อมูลที่จะอัปเดต
+    const updateData: any = {};
+    if (data.name) updateData.name = data.name;
+    if (data.unit) updateData.unit = data.unit;
+
+    if (data.exactQuantity !== undefined) {
+      // โหมด "แก้ไข": เซ็ตตัวเลขใหม่ทับไปเลย
+      updateData.quantity = Number(data.exactQuantity);
+    } else if (data.quantityToAdd !== undefined) {
+      // โหมด "เติมสต็อก": เอาเลขเดิมบวกเพิ่มเข้าไป
+      updateData.quantity = { increment: Number(data.quantityToAdd) };
+    }
+
+    // อัปเดตฐานข้อมูล (บังคับล็อก shopId เสมอ)
+    const updatedItem = await prisma.inventoryItem.updateMany({
+      where: {
+        id: data.id,
+        shopId: shopId,
+      },
+      data: updateData,
+    });
+
+    return NextResponse.json(updatedItem);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to update inventory item" },
       { status: 500 },
     );
   }
