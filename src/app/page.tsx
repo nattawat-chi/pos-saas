@@ -32,7 +32,29 @@ export default function POSPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { items, addItem, removeItem, getTotal, clearCart } = useCartStore();
   const [products, setProducts] = useState<APIProduct[]>([]);
+  const [shopName, setShopName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // ดึงข้อมูลชื่อร้านและส่งไปแสดงที่หน้าเว็บ
+  useEffect(() => {
+    const fetchShopName = async () => {
+      try {
+        const res = await fetch("/api/shop");
+        const data = await res.json();
+
+        if (res.ok && typeof data.name === "string") {
+          setShopName(data.name);
+        } else {
+          setShopName("");
+        }
+      } catch (error) {
+        console.error("Failed to load shop name", error);
+        setShopName("");
+      }
+    };
+
+    fetchShopName();
+  }, [session]);
 
   // ดึงข้อมูลจาก API เมื่อเปิดหน้าเว็บ
   useEffect(() => {
@@ -151,7 +173,14 @@ export default function POSPage() {
       <div className="flex-1 p-6 flex flex-col h-full">
         {/* เริ่ม: แถบ Header โฉมใหม่ */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-zinc-800">Menu</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-800">
+              {shopName ? `${shopName} - Menu` : "Menu"}
+            </h1>
+            {shopName && (
+              <p className="text-sm text-zinc-500">ร้าน: {shopName}</p>
+            )}
+          </div>
 
           <div className="flex items-center gap-4">
             {session ? (
